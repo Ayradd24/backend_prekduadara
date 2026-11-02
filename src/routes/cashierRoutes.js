@@ -8,6 +8,7 @@ router.get('/', cashierController.getAllCashiers);
 
 // Modifikasi data kasir memerlukan otentikasi JWT admin
 router.post('/', authMiddleware, cashierController.createCashier);
+router.put('/:id', authMiddleware, cashierController.updateCashier);
 router.patch('/:id/toggle', authMiddleware, cashierController.toggleCashierStatus);
 router.delete('/:id', authMiddleware, cashierController.deleteCashier);
 

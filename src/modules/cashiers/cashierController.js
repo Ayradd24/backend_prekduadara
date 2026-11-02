@@ -157,9 +157,53 @@ async function deleteCashier(req, res) {
   }
 }
 
+/**
+ * Controller: Update data staf kasir
+ */
+async function updateCashier(req, res) {
+  try {
+    const { id } = req.params;
+    const { name, role_title, shift, status_live } = req.body;
+
+    const [rows] = await pool.query('SELECT * FROM kasir WHERE cashier_code = ? OR id = ?', [id, id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ success: false, message: 'Staf kasir tidak ditemukan!' });
+    }
+
+    const current = rows[0];
+    const updatedName = name !== undefined ? name.trim() : current.name;
+    const updatedRole = role_title !== undefined ? role_title.trim() : current.role_title;
+    const updatedShift = shift !== undefined ? shift.trim() : current.shift;
+    const updatedStatus = status_live !== undefined ? status_live.trim() : current.status_live;
+
+    await pool.query(
+      'UPDATE kasir SET name = ?, role_title = ?, shift = ?, status_live = ? WHERE id = ?',
+      [updatedName, updatedRole, updatedShift, updatedStatus, current.id]
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: `Data kasir ${updatedName} berhasil diperbarui!`,
+      data: {
+        id: current.cashier_code,
+        dbId: current.id,
+        name: updatedName,
+        roleTitle: updatedRole,
+        shift: updatedShift,
+        statusLive: updatedStatus,
+        isActive: Boolean(current.is_active),
+      },
+    });
+  } catch (error) {
+    console.error('Error saat mengupdate kasir:', error);
+    return res.status(500).json({ success: false, message: 'Gagal mengupdate staf kasir' });
+  }
+}
+
 module.exports = {
   getAllCashiers,
   createCashier,
+  updateCashier,
   toggleCashierStatus,
   deleteCashier,
 };
