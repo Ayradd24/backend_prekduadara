@@ -1,22 +1,63 @@
 const { pool } = require('../../config/db');
 
 /**
+ * Helper: Cek apakah waktu saat ini masuk dalam rentang jam shift
+ */
+function isCurrentTimeWithinShift(shiftStr) {
+  if (!shiftStr) return false;
+  const s = shiftStr.toLowerCase();
+  if (s.includes('off') || s.includes('libur')) return false;
+
+  const match = s.match(/(\d{1,2})[:.](\d{2})\s*-\s*(\d{1,2})[:.](\d{2})/);
+  const now = new Date();
+  const nowTotal = now.getHours() * 60 + now.getMinutes();
+
+  if (!match) {
+    const nowH = now.getHours();
+    if (s.includes('pagi')) return nowH >= 8 && nowH < 12;
+    if (s.includes('siang')) return nowH >= 12 && nowH < 17;
+    if (s.includes('malam')) return nowH >= 17 && nowH < 22;
+    return false;
+  }
+
+  const startTotal = parseInt(match[1], 10) * 60 + parseInt(match[2], 10);
+  const endTotal = parseInt(match[3], 10) * 60 + parseInt(match[4], 10);
+
+  if (startTotal <= endTotal) {
+    return nowTotal >= startTotal && nowTotal < endTotal;
+  } else {
+    return nowTotal >= startTotal || nowTotal < endTotal;
+  }
+}
+
+/**
  * Controller: Ambil daftar staf kasir dari tabel MariaDB `kasir`
  */
 async function getAllCashiers(req, res) {
   try {
     const [rows] = await pool.query('SELECT * FROM kasir ORDER BY id ASC');
     
-    const formatted = rows.map((c) => ({
-      id: c.cashier_code,
-      dbId: c.id,
-      name: c.name,
-      roleTitle: c.role_title || 'Kasir',
-      shift: c.shift,
-      statusLive: c.status_live,
-      isActive: Boolean(c.is_active),
-      createdAt: c.created_at,
-    }));
+    const formatted = rows.map((c) => {
+      const isActive = Boolean(c.is_active);
+      let statusLive = c.status_live;
+
+      if (!isActive) {
+        statusLive = 'Selesai Shift / Off';
+      } else {
+        statusLive = isCurrentTimeWithinShift(c.shift) ? 'Aktif Melayani' : 'Standby / Rehat';
+      }
+
+      return {
+        id: c.cashier_code,
+        dbId: c.id,
+        name: c.name,
+        roleTitle: c.role_title || 'Kasir',
+        shift: c.shift,
+        statusLive,
+        isActive,
+        createdAt: c.created_at,
+      };
+    });
 
     return res.status(200).json({
       success: true,
@@ -106,7 +147,20 @@ async function toggleCashierStatus(req, res) {
     const current = rows[0];
     const newStatus = !current.is_active;
 
-    await pool.query('UPDATE kasir SET is_active = ? WHERE id = ?', [newStatus, current.id]);
+    let newStatusLive = req.body?.status_live;
+    if (!newStatusLive) {
+      if (!newStatus) {
+        newStatusLive = 'Selesai Shift / Off';
+      } else {
+        newStatusLive = isCurrentTimeWithinShift(current.shift) ? 'Aktif Melayani' : 'Standby / Rehat';
+      }
+    }
+
+    await pool.query('UPDATE kasir SET is_active = ?, status_live = ? WHERE id = ?', [
+      newStatus,
+      newStatusLive,
+      current.id,
+    ]);
 
     return res.status(200).json({
       success: true,
@@ -114,6 +168,7 @@ async function toggleCashierStatus(req, res) {
       data: {
         id: current.cashier_code,
         isActive: newStatus,
+        statusLive: newStatusLive,
       },
     });
   } catch (error) {
