@@ -1,15 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const cashierController = require('../modules/cashiers/cashierController');
-const authMiddleware = require('../middlewares/authMiddleware');
 
-// Endpoint publik atau dilindungi (bisa diakses Flutter kasir tanpa token atau dengan token)
+// Endpoint staf kasir (diakses oleh Web Dashboard & Flutter POS)
 router.get('/', cashierController.getAllCashiers);
-
-// Modifikasi data kasir memerlukan otentikasi JWT admin
-router.post('/', authMiddleware, cashierController.createCashier);
-router.put('/:id', authMiddleware, cashierController.updateCashier);
-router.patch('/:id/toggle', authMiddleware, cashierController.toggleCashierStatus);
-router.delete('/:id', authMiddleware, cashierController.deleteCashier);
+router.post('/', cashierController.createCashier);
+router.put('/:id', cashierController.updateCashier);
+router.patch('/:id/toggle', cashierController.toggleCashierStatus);
+router.delete('/:id', cashierController.deleteCashier);
 
 module.exports = router;
