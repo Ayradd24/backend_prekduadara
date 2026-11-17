@@ -61,7 +61,7 @@ async function createTransaction(req, res) {
 
     const now = new Date();
     const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    const cashierName = req.user ? req.user.name : 'Kasir Prek Dua Dara';
+    const cashierName = req.body.cashier || (req.user ? req.user.name : 'Kasir Prek Dua Dara');
 
     // Hitung count untuk trx_code
     const [[countResult]] = await pool.query('SELECT COUNT(*) as count FROM transactions');
