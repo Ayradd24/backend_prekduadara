@@ -37,7 +37,7 @@ async function getAllStocks(req, res) {
 async function updateStock(req, res) {
   try {
     const { id } = req.params;
-    const { amount, action } = req.body; // action: 'add' atau 'subtract'
+    const { amount, action, newStock: directStock } = req.body; // action: 'add' | 'subtract' atau langsung directStock
 
     // Ambil data stok saat ini
     const [rows] = await pool.query('SELECT * FROM stocks WHERE id = ?', [id]);
@@ -50,12 +50,16 @@ async function updateStock(req, res) {
 
     const currentItem = rows[0];
     let newStock = Number(currentItem.stock);
-    const qty = Number(amount) || 0;
 
-    if (action === 'add') {
-      newStock += qty;
-    } else if (action === 'subtract') {
-      newStock = Math.max(0, newStock - qty);
+    if (directStock !== undefined) {
+      newStock = Math.max(0, Number(directStock) || 0);
+    } else {
+      const qty = Number(amount) || 0;
+      if (action === 'add') {
+        newStock += qty;
+      } else if (action === 'subtract') {
+        newStock = Math.max(0, newStock - qty);
+      }
     }
 
     // Hitung status baru
@@ -95,7 +99,74 @@ async function updateStock(req, res) {
   }
 }
 
+/**
+ * Controller: Tambah bahan baku baru ke MariaDB
+ */
+async function createStock(req, res) {
+  try {
+    const { name, stock, unit, minStock } = req.body;
+    if (!name || !unit) {
+      return res.status(400).json({
+        success: false,
+        message: 'Nama dan satuan bahan baku wajib diisi!',
+      });
+    }
+
+    const numStock = Number(stock) || 0;
+    const numMin = Number(minStock) || 10;
+    let status = 'Aman';
+    if (numStock <= numMin / 2) status = 'Kritis';
+    else if (numStock <= numMin) status = 'Menipis';
+
+    const [result] = await pool.query(
+      'INSERT INTO stocks (name, stock, unit, min_stock, status) VALUES (?, ?, ?, ?, ?)',
+      [name, numStock, unit, numMin, status]
+    );
+
+    return res.status(201).json({
+      success: true,
+      message: 'Bahan baku berhasil ditambahkan ke database',
+      data: {
+        id: String(result.insertId),
+        name,
+        stock: numStock,
+        unit,
+        minStock: numMin,
+        status,
+      },
+    });
+  } catch (error) {
+    console.error('Error saat menambah stok:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Gagal menambah data stok',
+    });
+  }
+}
+
+/**
+ * Controller: Hapus bahan baku dari MariaDB
+ */
+async function deleteStock(req, res) {
+  try {
+    const { id } = req.params;
+    await pool.query('DELETE FROM stocks WHERE id = ?', [id]);
+    return res.status(200).json({
+      success: true,
+      message: 'Bahan baku berhasil dihapus dari database',
+    });
+  } catch (error) {
+    console.error('Error saat menghapus stok:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Gagal menghapus stok',
+    });
+  }
+}
+
 module.exports = {
   getAllStocks,
   updateStock,
+  createStock,
+  deleteStock,
 };

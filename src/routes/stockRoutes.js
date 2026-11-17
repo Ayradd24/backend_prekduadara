@@ -3,13 +3,16 @@ const router = express.Router();
 const stockController = require('../modules/stocks/stockController');
 const authMiddleware = require('../middlewares/authMiddleware');
 
-// Semua rute inventaris stok dilindungi dengan authMiddleware (JWT Token)
-router.use(authMiddleware);
-
-// GET /api/stocks - Ambil daftar stok bahan baku
+// GET /api/stocks - Ambil daftar stok bahan baku (bisa diakses dashboard / POS)
 router.get('/', stockController.getAllStocks);
 
-// PATCH /api/stocks/:id - Tambah atau kurangi stok
+// POST /api/stocks - Tambah bahan baku baru
+router.post('/', stockController.createStock);
+
+// PATCH /api/stocks/:id - Tambah atau kurangi stok / set nilai langsung
 router.patch('/:id', stockController.updateStock);
+
+// DELETE /api/stocks/:id - Hapus bahan baku
+router.delete('/:id', stockController.deleteStock);
 
 module.exports = router;

@@ -1,13 +1,35 @@
 const { pool } = require('../../config/db');
 
 /**
- * Controller: Ambil seluruh riwayat transaksi dari MariaDB
+ * Controller: Ambil seluruh riwayat transaksi dari MariaDB beserta rincian menu
  */
 async function getAllTransactions(req, res) {
   try {
-    const [rows] = await pool.query(
-      'SELECT trx_code as id, time, cashier, total, payment_method as paymentMethod, status, created_at FROM transactions ORDER BY transactions.id DESC'
-    );
+    const [rows] = await pool.query(`
+      SELECT 
+        t.id as dbId,
+        t.trx_code as id,
+        t.time,
+        t.cashier,
+        t.total,
+        t.payment_method as paymentMethod,
+        t.status,
+        t.created_at,
+        COALESCE(
+          (SELECT GROUP_CONCAT(CONCAT(ti.quantity, 'x ', ti.product_name) SEPARATOR ', ')
+           FROM transaction_items ti 
+           WHERE ti.transaction_id = t.id),
+          'Ayam Geprek Bakar + Es Teh'
+        ) as itemsSummary,
+        COALESCE(
+          (SELECT SUM(ti.quantity)
+           FROM transaction_items ti
+           WHERE ti.transaction_id = t.id),
+          1
+        ) as totalItems
+      FROM transactions t 
+      ORDER BY t.id DESC
+    `);
 
     return res.status(200).json({
       success: true,

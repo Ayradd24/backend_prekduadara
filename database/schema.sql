@@ -98,3 +98,51 @@ INSERT IGNORE INTO stocks (id, name, stock, unit, min_stock, status) VALUES
 (3, 'Cabai Rawit Merah', 2.00, 'kg', 5.00, 'Kritis'),
 (4, 'Beras Ramos', 50.00, 'kg', 20.00, 'Aman'),
 (5, 'Tepung Bumbu Crispy', 15.00, 'kg', 5.00, 'Aman');
+
+
+-- 7. Tabel Store Settings (Pengaturan & Konfigurasi Toko PrekDuaDara)
+CREATE TABLE IF NOT EXISTS store_settings (
+    id INT PRIMARY KEY DEFAULT 1,
+    nama_warung VARCHAR(255) DEFAULT 'Ayam Geprek PrekDuaDara - Cabang',
+    slogan VARCHAR(255) DEFAULT 'Spesial Ayam Geprek Cobek & Sambal Uleg Asli',
+    alamat TEXT,
+    whatsapp VARCHAR(50) DEFAULT '0812*********',
+    email_resto VARCHAR(100) DEFAULT 'halo.cabang@prekduadara.id',
+    nib VARCHAR(50) DEFAULT '9120003491824',
+    jam_buka_weekday VARCHAR(20) DEFAULT '09:30 WIB',
+    jam_tutup_weekday VARCHAR(20) DEFAULT '22:00 WIB',
+    jam_buka_weekend VARCHAR(20) DEFAULT '09:00 WIB',
+    jam_tutup_weekend VARCHAR(20) DEFAULT '23:00 WIB',
+    auto_close_kasir BOOLEAN DEFAULT FALSE,
+    istirahat_sore BOOLEAN DEFAULT FALSE,
+    pajak_persen VARCHAR(10) DEFAULT '10',
+    pajak_tipe VARCHAR(20) DEFAULT 'akhir',
+    biaya_kemasan VARCHAR(20) DEFAULT '2.000',
+    aturan_pembulatan VARCHAR(100) DEFAULT 'Kelipatan Rp 500 terdekat',
+    cetak_logo BOOLEAN DEFAULT TRUE,
+    cetak_alamat BOOLEAN DEFAULT TRUE,
+    nomor_antrian_besar BOOLEAN DEFAULT TRUE,
+    kode_qris_dinamis BOOLEAN DEFAULT TRUE,
+    pesan_footer TEXT,
+    auto_print_lunas BOOLEAN DEFAULT TRUE,
+    channel_tunai BOOLEAN DEFAULT TRUE,
+    channel_qris BOOLEAN DEFAULT TRUE,
+    channel_edc BOOLEAN DEFAULT TRUE,
+    channel_ojol BOOLEAN DEFAULT TRUE,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+INSERT IGNORE INTO store_settings (
+    id, nama_warung, slogan, alamat, whatsapp, email_resto, nib,
+    jam_buka_weekday, jam_tutup_weekday, jam_buka_weekend, jam_tutup_weekend,
+    auto_close_kasir, istirahat_sore, pajak_persen, pajak_tipe, biaya_kemasan, aturan_pembulatan,
+    cetak_logo, cetak_alamat, nomor_antrian_besar, kode_qris_dinamis, pesan_footer, auto_print_lunas,
+    channel_tunai, channel_qris, channel_edc, channel_ojol
+) VALUES (
+    1, 'Ayam Geprek PrekDuaDara - Cabang', 'Spesial Ayam Geprek Cobek & Sambal Uleg Asli',
+    'samping gerbang um/matos', '0812*********', 'halo.cabang@prekduadara.id', '9120003491824',
+    '09:30 WIB', '22:00 WIB', '09:00 WIB', '23:00 WIB',
+    FALSE, FALSE, '10', 'akhir', '2.000', 'Kelipatan Rp 500 terdekat',
+    TRUE, TRUE, TRUE, TRUE, 'Matur nuwun sampun mampir! Pedasnya bikin nagih. Follow IG @prekduadara.id', TRUE,
+    TRUE, TRUE, TRUE, TRUE
+);
