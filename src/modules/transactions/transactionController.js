@@ -26,7 +26,13 @@ async function getAllTransactions(req, res) {
            FROM transaction_items ti
            WHERE ti.transaction_id = t.id),
           1
-        ) as totalItems
+        ) as totalItems,
+        COALESCE(
+          (SELECT JSON_ARRAYAGG(JSON_OBJECT('name', ti.product_name, 'price', ti.price, 'quantity', ti.quantity, 'subtotal', ti.subtotal))
+           FROM transaction_items ti
+           WHERE ti.transaction_id = t.id),
+          JSON_ARRAY()
+        ) as items
       FROM transactions t 
       ORDER BY t.id DESC
     `);
