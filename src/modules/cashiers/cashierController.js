@@ -328,43 +328,14 @@ async function loginCashier(req, res) {
  */
 async function logoutCashier(req, res) {
   try {
-    const { cashier, id } = req.body;
-    const identifier = cashier || id;
-
-    if (identifier) {
-      const clean = String(identifier).trim().toLowerCase();
-      const [rows] = await pool.query('SELECT * FROM kasir');
-      const matched = rows.find((c) => {
-        const cName = c.name.toLowerCase();
-        const cCode = c.cashier_code.toLowerCase();
-        return (
-          cName === clean ||
-          cCode === clean ||
-          cName.includes(clean) ||
-          clean.includes(cName)
-        );
-      });
-
-      if (matched) {
-        await pool.query(
-          "UPDATE kasir SET status_live = 'Standby / Rehat' WHERE id = ?",
-          [matched.id]
-        );
-      } else {
-        await pool.query(
-          "UPDATE kasir SET status_live = 'Standby / Rehat' WHERE is_active = 1"
-        );
-      }
-    } else {
-      // Jika tidak spesifik, set semua kasir aktif menjadi standby
-      await pool.query(
-        "UPDATE kasir SET status_live = 'Standby / Rehat' WHERE is_active = 1"
-      );
-    }
+    // Tutup shift: pastikan seluruh staf kasir yang aktif kembali ke Standby / Rehat
+    await pool.query(
+      "UPDATE kasir SET status_live = 'Standby / Rehat' WHERE is_active = 1"
+    );
 
     return res.status(200).json({
       success: true,
-      message: 'Sesi kasir berhasil ditutup / Standby',
+      message: 'Sesi kasir berhasil ditutup, seluruh kasir berstatus Standby / Rehat',
     });
   } catch (error) {
     console.error('Error saat logout kasir:', error);
