@@ -350,6 +350,10 @@ async function logoutCashier(req, res) {
           "UPDATE kasir SET status_live = 'Standby / Rehat' WHERE id = ?",
           [matched.id]
         );
+      } else {
+        await pool.query(
+          "UPDATE kasir SET status_live = 'Standby / Rehat' WHERE is_active = 1"
+        );
       }
     } else {
       // Jika tidak spesifik, set semua kasir aktif menjadi standby
