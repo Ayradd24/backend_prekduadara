@@ -26,7 +26,13 @@ async function getAllTransactions(req, res) {
            FROM transaction_items ti
            WHERE ti.transaction_id = t.id),
           1
-        ) as totalItems
+        ) as totalItems,
+        COALESCE(
+          (SELECT JSON_ARRAYAGG(JSON_OBJECT('name', ti.product_name, 'price', ti.price, 'quantity', ti.quantity, 'subtotal', ti.subtotal))
+           FROM transaction_items ti
+           WHERE ti.transaction_id = t.id),
+          JSON_ARRAY()
+        ) as items
       FROM transactions t 
       ORDER BY t.id DESC
     `);
@@ -61,11 +67,29 @@ async function createTransaction(req, res) {
 
     const now = new Date();
     const time = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-    const cashierName = req.user ? req.user.name : 'Kasir Prek Dua Dara';
+    const cashierName = req.body.cashier || (req.user ? req.user.name : 'Kasir Prek Dua Dara');
 
-    // Hitung count untuk trx_code
-    const [[countResult]] = await pool.query('SELECT COUNT(*) as count FROM transactions');
-    const trxCode = `TRX-${String(countResult.count + 1).padStart(3, '0')}`;
+    // Format kode transaksi harian: TRX-DDMMYY-001 (contoh: TRX-191126-001)
+    // Otomatis reset mulai dari 001 setiap kali berganti tanggal (DDMMYY)
+    const dd = String(now.getDate()).padStart(2, '0');
+    const mm = String(now.getMonth() + 1).padStart(2, '0');
+    const yy = String(now.getFullYear()).slice(-2);
+    const datePrefix = `${dd}${mm}${yy}`;
+
+    const [latestRows] = await pool.query(
+      'SELECT trx_code FROM transactions WHERE trx_code LIKE ? ORDER BY id DESC LIMIT 1',
+      [`TRX-${datePrefix}-%`]
+    );
+
+    let nextDailySeq = 1;
+    if (latestRows.length > 0) {
+      const match = latestRows[0].trx_code.match(/-(\d+)$/);
+      if (match) {
+        nextDailySeq = parseInt(match[1], 10) + 1;
+      }
+    }
+
+    const trxCode = `TRX-${datePrefix}-${String(nextDailySeq).padStart(3, '0')}`;
 
     // Simpan ke tabel transactions
     const [result] = await pool.query(
