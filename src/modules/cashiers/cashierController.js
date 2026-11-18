@@ -39,12 +39,10 @@ async function getAllCashiers(req, res) {
     
     const formatted = rows.map((c) => {
       const isActive = Boolean(c.is_active);
-      let statusLive = c.status_live;
+      let statusLive = c.status_live || 'Standby / Rehat';
 
       if (!isActive) {
         statusLive = 'Selesai Shift / Off';
-      } else {
-        statusLive = isCurrentTimeWithinShift(c.shift) ? 'Aktif Melayani' : 'Standby / Rehat';
       }
 
       return {
@@ -152,7 +150,7 @@ async function toggleCashierStatus(req, res) {
       if (!newStatus) {
         newStatusLive = 'Selesai Shift / Off';
       } else {
-        newStatusLive = isCurrentTimeWithinShift(current.shift) ? 'Aktif Melayani' : 'Standby / Rehat';
+        newStatusLive = current.status_live || 'Standby / Rehat';
       }
     }
 
@@ -251,7 +249,125 @@ async function updateCashier(req, res) {
     });
   } catch (error) {
     console.error('Error saat mengupdate kasir:', error);
-    return res.status(500).json({ success: false, message: 'Gagal mengupdate staf kasir' });
+    return res.status(200).json({ success: false, message: 'Gagal mengupdate staf kasir' });
+  }
+}
+
+/**
+ * Controller: Kasir login dari aplikasi (Flutter POS)
+ * Mengubah status_live kasir yang login menjadi 'Aktif Melayani',
+ * dan kasir lain yang aktif menjadi 'Standby / Rehat'.
+ */
+async function loginCashier(req, res) {
+  try {
+    const { cashier, id } = req.body;
+    const identifier = cashier || id;
+
+    if (!identifier) {
+      return res.status(400).json({
+        success: false,
+        message: 'Nama atau kode kasir wajib diberikan!',
+      });
+    }
+
+    const clean = String(identifier).trim().toLowerCase();
+
+    // Cari kasir yang sesuai
+    const [rows] = await pool.query('SELECT * FROM kasir WHERE is_active = 1');
+    const matched = rows.find((c) => {
+      const cName = c.name.toLowerCase();
+      const cCode = c.cashier_code.toLowerCase();
+      return (
+        cName === clean ||
+        cCode === clean ||
+        cName.includes(clean) ||
+        clean.includes(cName)
+      );
+    });
+
+    if (!matched) {
+      return res.status(404).json({
+        success: false,
+        message: `Staf kasir '${identifier}' tidak ditemukan atau sedang dinonaktifkan!`,
+      });
+    }
+
+    // Set kasir lain yang sedang aktif melayani menjadi 'Standby / Rehat'
+    await pool.query(
+      "UPDATE kasir SET status_live = 'Standby / Rehat' WHERE id != ? AND is_active = 1",
+      [matched.id]
+    );
+
+    // Set kasir yang login menjadi 'Aktif Melayani'
+    await pool.query(
+      "UPDATE kasir SET status_live = 'Aktif Melayani' WHERE id = ?",
+      [matched.id]
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: `Kasir ${matched.name} berhasil login dan berstatus Aktif Melayani`,
+      data: {
+        id: matched.cashier_code,
+        name: matched.name,
+        shift: matched.shift,
+        statusLive: 'Aktif Melayani',
+      },
+    });
+  } catch (error) {
+    console.error('Error saat login kasir:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Gagal memproses login kasir',
+    });
+  }
+}
+
+/**
+ * Controller: Kasir logout / tutup shift dari aplikasi
+ */
+async function logoutCashier(req, res) {
+  try {
+    const { cashier, id } = req.body;
+    const identifier = cashier || id;
+
+    if (identifier) {
+      const clean = String(identifier).trim().toLowerCase();
+      const [rows] = await pool.query('SELECT * FROM kasir');
+      const matched = rows.find((c) => {
+        const cName = c.name.toLowerCase();
+        const cCode = c.cashier_code.toLowerCase();
+        return (
+          cName === clean ||
+          cCode === clean ||
+          cName.includes(clean) ||
+          clean.includes(cName)
+        );
+      });
+
+      if (matched) {
+        await pool.query(
+          "UPDATE kasir SET status_live = 'Standby / Rehat' WHERE id = ?",
+          [matched.id]
+        );
+      }
+    } else {
+      // Jika tidak spesifik, set semua kasir aktif menjadi standby
+      await pool.query(
+        "UPDATE kasir SET status_live = 'Standby / Rehat' WHERE is_active = 1"
+      );
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Sesi kasir berhasil ditutup / Standby',
+    });
+  } catch (error) {
+    console.error('Error saat logout kasir:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Gagal memproses logout kasir',
+    });
   }
 }
 
@@ -261,4 +377,6 @@ module.exports = {
   updateCashier,
   toggleCashierStatus,
   deleteCashier,
+  loginCashier,
+  logoutCashier,
 };
