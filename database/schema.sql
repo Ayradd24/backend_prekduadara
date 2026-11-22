@@ -66,6 +66,7 @@ CREATE TABLE IF NOT EXISTS transaction_items (
     id INT AUTO_INCREMENT PRIMARY KEY,
     transaction_id INT NOT NULL,
     product_name VARCHAR(150) NOT NULL,
+    sambal VARCHAR(50) DEFAULT NULL,
     price INT NOT NULL,
     quantity INT NOT NULL,
     subtotal INT NOT NULL,
@@ -86,18 +87,33 @@ INSERT IGNORE INTO kasir (id, cashier_code, name, role_title, shift, status_live
 (2, '#KSR-002', 'Siti', 'Kasir', 'Shift Siang (12:00 - 17:00)', 'Standby / Rehat', TRUE),
 (3, '#KSR-003', 'Budi', 'Kasir', 'Shift Malam (17:00 - 22:00)', 'Standby / Rehat', TRUE);
 
--- Menu Produk Resmi PrekDuaDara (2 Menu Paket)
+-- Menu Produk Resmi PrekDuaDara (7 Menu Final)
 INSERT IGNORE INTO products (id, name, description, price, category, image) VALUES
 (1, 'Ayam Geprek Bakar + Es Teh', 'Nasi + Ayam Geprek Bakar + Es Teh', 18000, 'Paket Menu', 'assets/images/geprek_bakar.jpg'),
-(2, 'Ayam Geprek Biasa + Es Teh', 'Nasi + Ayam Geprek Biasa + Es Teh', 17000, 'Paket Menu', 'assets/images/geprek_biasa.jpg');
+(2, 'Ayam Geprek Biasa + Es Teh', 'Nasi + Ayam Geprek Biasa + Es Teh', 17000, 'Paket Menu', 'assets/images/geprek_biasa.jpg'),
+(3, 'Ayam Geprek Mozzarella + Es Teh', 'Paket ayam geprek krispi dengan lelehan keju mozzarella, nasi & es teh sepuasnya', 22000, 'Paket Menu', ''),
+(4, 'Ayam Geprek (Tanpa Nasi)', 'Potongan ayam geprek krispi tanpa nasi', 13000, 'Tambahan', ''),
+(5, 'Tahu & Tempe Geprek', 'Lauk pendamping tahu dan tempe goreng tepung krispi', 6000, 'Tambahan', ''),
+(6, 'Telur Krispi', 'Telur dadar goreng tepung renyah', 5000, 'Tambahan', ''),
+(7, 'Jamur Krispi', 'Jamur tiram goreng tepung gurih dan renyah', 7000, 'Tambahan', '');
 
--- Stok Bahan Baku Default
+-- Stok Bahan Baku Default (15 Bahan Baku)
 INSERT IGNORE INTO stocks (id, name, stock, unit, min_stock, status) VALUES
-(1, 'Ayam Potong Segar', 24.00, 'kg', 10.00, 'Aman'),
-(2, 'Minyak Goreng Sawit', 5.00, 'liter', 8.00, 'Menipis'),
-(3, 'Cabai Rawit Merah', 2.00, 'kg', 5.00, 'Kritis'),
-(4, 'Beras Ramos', 50.00, 'kg', 20.00, 'Aman'),
-(5, 'Tepung Bumbu Crispy', 15.00, 'kg', 5.00, 'Aman');
+(1, 'Ayam Potong', 24.00, 'kg', 10.00, 'Aman'),
+(2, 'Minyak Goreng', 5.00, 'liter', 8.00, 'Menipis'),
+(3, 'Cabai Rawit', 2.00, 'kg', 5.00, 'Kritis'),
+(4, 'Beras', 50.00, 'kg', 20.00, 'Aman'),
+(5, 'Tepung Bumbu', 15.00, 'kg', 5.00, 'Aman'),
+(6, 'Keju Mozzarella', 5.00, 'kg', 2.00, 'Aman'),
+(7, 'Tahu & Tempe', 60.00, 'pcs', 20.00, 'Aman'),
+(8, 'Telur Ayam', 10.00, 'kg', 3.00, 'Aman'),
+(9, 'Jamur Tiram', 8.00, 'kg', 3.00, 'Aman'),
+(10, 'Teh & Gula Pasir', 10.00, 'kg', 3.00, 'Aman'),
+(11, 'Kemasan Box & Cup', 200.00, 'pcs', 50.00, 'Aman'),
+(12, 'Bawang Merah & Putih', 12.00, 'kg', 4.00, 'Aman'),
+(13, 'Cabai Hijau', 6.00, 'kg', 2.00, 'Aman'),
+(14, 'Tomat', 8.00, 'kg', 3.00, 'Aman'),
+(15, 'Serai & Daun Jeruk', 4.00, 'kg', 1.50, 'Aman');
 
 
 -- 7. Tabel Store Settings (Pengaturan & Konfigurasi Toko PrekDuaDara)

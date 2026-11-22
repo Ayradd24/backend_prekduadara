@@ -16,8 +16,23 @@ async function getAllTransactions(req, res) {
         t.status,
         t.created_at,
         COALESCE(
-          (SELECT GROUP_CONCAT(CONCAT(ti.quantity, 'x ', ti.product_name) SEPARATOR ', ')
-           FROM transaction_items ti 
+          (SELECT GROUP_CONCAT(
+             CONCAT(
+               ti.quantity,
+               'x ',
+               COALESCE(p.name, ti.product_name),
+               CASE
+                 WHEN ti.sambal IS NOT NULL AND ti.sambal != '' THEN CONCAT(' (', ti.sambal, ')')
+                 ELSE ''
+               END
+             ) SEPARATOR ', '
+           )
+           FROM transaction_items ti
+           LEFT JOIN (
+             SELECT MIN(id) as id, name, MAX(category) as category
+             FROM products
+             GROUP BY name
+           ) p ON p.name = ti.product_name
            WHERE ti.transaction_id = t.id),
           'Ayam Geprek Bakar + Es Teh'
         ) as itemsSummary,
@@ -28,8 +43,23 @@ async function getAllTransactions(req, res) {
           1
         ) as totalItems,
         COALESCE(
-          (SELECT JSON_ARRAYAGG(JSON_OBJECT('name', ti.product_name, 'price', ti.price, 'quantity', ti.quantity, 'subtotal', ti.subtotal))
+          (SELECT JSON_ARRAYAGG(
+             JSON_OBJECT(
+               'productId', p.id,
+               'name', COALESCE(p.name, ti.product_name),
+               'category', COALESCE(p.category, 'Paket Menu'),
+               'sambal', ti.sambal,
+               'price', ti.price,
+               'quantity', ti.quantity,
+               'subtotal', ti.subtotal
+             )
+           )
            FROM transaction_items ti
+           LEFT JOIN (
+             SELECT MIN(id) as id, name, MAX(category) as category
+             FROM products
+             GROUP BY name
+           ) p ON p.name = ti.product_name
            WHERE ti.transaction_id = t.id),
           JSON_ARRAY()
         ) as items
@@ -100,20 +130,70 @@ async function createTransaction(req, res) {
     const transactionId = result.insertId;
 
     // Jika ada rincian item, simpan ke tabel transaction_items
+    const savedItems = [];
     if (Array.isArray(items) && items.length > 0) {
       for (const item of items) {
+        let itemName = item.name || item.product_name || 'Menu';
+        let itemPrice = Number(item.price) || 0;
+        let itemCategory = item.category || 'Paket Menu';
+        let resolvedProductId = item.productId || item.product_id || item.id || null;
+
+        if (resolvedProductId) {
+          const [prodRows] = await pool.query(
+            'SELECT id, name, price, category FROM products WHERE id = ? LIMIT 1',
+            [resolvedProductId]
+          );
+          if (prodRows.length > 0) {
+            if (!item.name && !item.product_name) {
+              itemName = prodRows[0].name;
+            }
+            if (!itemPrice) {
+              itemPrice = Number(prodRows[0].price) || 0;
+            }
+            itemCategory = prodRows[0].category || itemCategory;
+            resolvedProductId = prodRows[0].id;
+          }
+        }
+
+        const rawSambal = item.sambal !== undefined ? item.sambal : req.body.sambal;
+        const itemSambal =
+          typeof rawSambal === 'string' && rawSambal.trim() !== ''
+            ? rawSambal.trim().slice(0, 50)
+            : null;
+        const itemQuantity = Number(item.quantity) || 1;
+        const itemSubtotal = Number(item.subtotal) || itemPrice * itemQuantity;
+
         await pool.query(
-          'INSERT INTO transaction_items (transaction_id, product_name, price, quantity, subtotal) VALUES (?, ?, ?, ?, ?)',
+          'INSERT INTO transaction_items (transaction_id, product_name, sambal, price, quantity, subtotal) VALUES (?, ?, ?, ?, ?, ?)',
           [
             transactionId,
-            item.name || 'Menu',
-            Number(item.price) || 0,
-            Number(item.quantity) || 1,
-            Number(item.subtotal) || Number(item.price) * (Number(item.quantity) || 1),
+            itemName,
+            itemSambal,
+            itemPrice,
+            itemQuantity,
+            itemSubtotal,
           ]
         );
+
+        savedItems.push({
+          productId: resolvedProductId,
+          name: itemName,
+          category: itemCategory,
+          sambal: itemSambal,
+          price: itemPrice,
+          quantity: itemQuantity,
+          subtotal: itemSubtotal,
+        });
       }
     }
+
+    const itemsSummary = savedItems
+      .map((item) =>
+        item.sambal
+          ? `${item.quantity}x ${item.name} (${item.sambal})`
+          : `${item.quantity}x ${item.name}`
+      )
+      .join(', ');
 
     return res.status(201).json({
       success: true,
@@ -125,6 +205,8 @@ async function createTransaction(req, res) {
         total: Number(total),
         paymentMethod,
         status: 'Selesai',
+        itemsSummary,
+        items: savedItems,
       },
     });
   } catch (error) {
