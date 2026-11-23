@@ -91,11 +91,11 @@ INSERT IGNORE INTO kasir (id, cashier_code, name, role_title, shift, status_live
 INSERT IGNORE INTO products (id, name, description, price, category, image) VALUES
 (1, 'Ayam Geprek Bakar + Es Teh', 'Nasi + Ayam Geprek Bakar + Es Teh', 18000, 'Paket Menu', 'assets/images/geprek_bakar.jpg'),
 (2, 'Ayam Geprek Biasa + Es Teh', 'Nasi + Ayam Geprek Biasa + Es Teh', 17000, 'Paket Menu', 'assets/images/geprek_biasa.jpg'),
-(3, 'Ayam Geprek Mozzarella + Es Teh', 'Paket ayam geprek krispi dengan lelehan keju mozzarella, nasi & es teh sepuasnya', 22000, 'Paket Menu', ''),
-(4, 'Ayam Geprek (Tanpa Nasi)', 'Potongan ayam geprek krispi tanpa nasi', 13000, 'Tambahan', ''),
-(5, 'Tahu & Tempe Geprek', 'Lauk pendamping tahu dan tempe goreng tepung krispi', 6000, 'Tambahan', ''),
-(6, 'Telur Krispi', 'Telur dadar goreng tepung renyah', 5000, 'Tambahan', ''),
-(7, 'Jamur Krispi', 'Jamur tiram goreng tepung gurih dan renyah', 7000, 'Tambahan', '');
+(3, 'Ayam Geprek Mozzarella + Es Teh', 'Paket ayam geprek krispi dengan lelehan keju mozzarella, nasi & es teh sepuasnya', 22000, 'Paket Menu', 'assets/images/geprek_mozzarella.jpg'),
+(4, 'Ayam Geprek (Tanpa Nasi)', 'Potongan ayam geprek krispi tanpa nasi', 13000, 'Tambahan', 'assets/images/geprek_tanpa_nasi.jpg'),
+(5, 'Tahu & Tempe Geprek', 'Lauk pendamping tahu dan tempe goreng tepung krispi', 6000, 'Tambahan', 'assets/images/tahu_tempe.jpg'),
+(6, 'Telur Krispi', 'Telur dadar goreng tepung renyah', 5000, 'Tambahan', 'assets/images/telur_krispi.jpg'),
+(7, 'Jamur Krispi', 'Jamur tiram goreng tepung gurih dan renyah', 7000, 'Tambahan', 'assets/images/jamur_krispi.jpg');
 
 -- Stok Bahan Baku Default (15 Bahan Baku)
 INSERT IGNORE INTO stocks (id, name, stock, unit, min_stock, status) VALUES
