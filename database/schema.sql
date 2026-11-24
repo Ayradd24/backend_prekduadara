@@ -162,3 +162,19 @@ INSERT IGNORE INTO store_settings (
     TRUE, TRUE, TRUE, TRUE, 'Matur nuwun sampun mampir! Pedasnya bikin nagih. Follow IG @prekduadara.id', TRUE,
     TRUE, TRUE, TRUE, TRUE
 );
+
+-- 8. Tabel Market Trend Settings (Konfigurasi Tren Pasar Mahasiswa Malang)
+CREATE TABLE IF NOT EXISTS market_trend_settings (
+    id INT PRIMARY KEY DEFAULT 1,
+    active_trend VARCHAR(50) DEFAULT 'auto',
+    auto_detect_cycle BOOLEAN DEFAULT TRUE,
+    target_safe_days INT DEFAULT 4,
+    notes VARCHAR(255) DEFAULT '',
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+INSERT IGNORE INTO market_trend_settings (
+    id, active_trend, auto_detect_cycle, target_safe_days, notes
+) VALUES (
+    1, 'auto', TRUE, 4, 'Deteksi tren pasar mahasiswa Malang secara otomatis oleh Gemini AI'
+);
