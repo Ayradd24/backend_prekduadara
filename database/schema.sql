@@ -57,6 +57,8 @@ CREATE TABLE IF NOT EXISTS transactions (
     cashier VARCHAR(100) NOT NULL,
     total INT NOT NULL,
     payment_method VARCHAR(50) NOT NULL,
+    cash_received INT DEFAULT NULL,
+    change_amount INT DEFAULT NULL,
     status VARCHAR(50) DEFAULT 'Selesai',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );

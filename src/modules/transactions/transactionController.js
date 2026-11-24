@@ -13,6 +13,8 @@ async function getAllTransactions(req, res) {
         t.cashier,
         t.total,
         t.payment_method as paymentMethod,
+        COALESCE(t.cash_received, CASE WHEN UPPER(t.payment_method) LIKE '%TUNAI%' THEN t.total ELSE NULL END) as cashReceived,
+        COALESCE(t.change_amount, CASE WHEN UPPER(t.payment_method) LIKE '%TUNAI%' THEN 0 ELSE NULL END) as changeAmount,
         t.status,
         t.created_at,
         COALESCE(
@@ -86,7 +88,7 @@ async function getAllTransactions(req, res) {
  */
 async function createTransaction(req, res) {
   try {
-    const { total, paymentMethod, items } = req.body;
+    const { total, paymentMethod, items, cashReceived, changeAmount, bayar, kembalian } = req.body;
 
     if (!total || !paymentMethod) {
       return res.status(400).json({
@@ -121,10 +123,23 @@ async function createTransaction(req, res) {
 
     const trxCode = `TRX-${datePrefix}-${String(nextDailySeq).padStart(3, '0')}`;
 
+    // Hitung / siapkan uang tunai yang diterima dan kembalian
+    let finalCashReceived = null;
+    let finalChangeAmount = null;
+    if (String(paymentMethod).toUpperCase().includes('TUNAI')) {
+      const rawPay = cashReceived !== undefined ? cashReceived : bayar;
+      const parsedPay = rawPay !== undefined && rawPay !== null ? Number(rawPay) : Number(total);
+      finalCashReceived = Number.isNaN(parsedPay) ? Number(total) : parsedPay;
+
+      const rawChange = changeAmount !== undefined ? changeAmount : kembalian;
+      const parsedChange = rawChange !== undefined && rawChange !== null ? Number(rawChange) : (finalCashReceived - Number(total));
+      finalChangeAmount = Number.isNaN(parsedChange) ? Math.max(0, finalCashReceived - Number(total)) : Math.max(0, parsedChange);
+    }
+
     // Simpan ke tabel transactions
     const [result] = await pool.query(
-      'INSERT INTO transactions (trx_code, time, cashier, total, payment_method, status) VALUES (?, ?, ?, ?, ?, ?)',
-      [trxCode, time, cashierName, Number(total), paymentMethod, 'Selesai']
+      'INSERT INTO transactions (trx_code, time, cashier, total, payment_method, cash_received, change_amount, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [trxCode, time, cashierName, Number(total), paymentMethod, finalCashReceived, finalChangeAmount, 'Selesai']
     );
 
     const transactionId = result.insertId;
@@ -204,6 +219,8 @@ async function createTransaction(req, res) {
         cashier: cashierName,
         total: Number(total),
         paymentMethod,
+        cashReceived: finalCashReceived,
+        changeAmount: finalChangeAmount,
         status: 'Selesai',
         itemsSummary,
         items: savedItems,
